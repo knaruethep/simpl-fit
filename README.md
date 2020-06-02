@@ -2,7 +2,7 @@
 
 ## Build Instructions
 ```bash
-$ git clone https://github.com/sanil-shrvn/SimpL-Critique.git
+$ git clone https://github.com/SimpL-fit/SimpL-Critique.git
 $ cd SimpL-Critique
 $ python setup.py install
 ```
