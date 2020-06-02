@@ -29,7 +29,8 @@ REQUIRED_PACKAGES = [
     'tqdm >= 4.23.4',
     'tensorpack >= 0.8.5',
     'tensorflow == 1.14',
-    'pycocotools'
+    'pycocotools',
+    'imutils'
 ]
 
 DEPENDENCY_LINKS = [
