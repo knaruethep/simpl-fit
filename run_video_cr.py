@@ -33,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--workout', type=str, default="shoulderpress",
                         help='shoulderpress, plank, curls, squats, pushup')
     parser.add_argument('--side', type=str, default="L", help='L for left or R for right')
-    parser.add_argument('--output', type=str, help='A file or directory to save output visualizations.')
+    parser.add_argument('--output', type=str, help='A file or directory to save output visualizations. If directory does\'t exist, it will be created.')
     args = parser.parse_args()
 
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
@@ -41,14 +41,43 @@ if __name__ == '__main__':
     rep_count = 0
     w, h = model_wh(args.resolution)
     e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
+
+    assert os.path.isfile(args.video)
+
     cap = cv2.VideoCapture(args.video)
     frames_per_second = cap.get(cv2.CAP_PROP_FPS)
     num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cap_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    if args.output:
+        basename = os.path.basename(args.video)
+        abspath = os.path.join(os.path.abspath('.'), args.output)
+
+        if os.path.splitext(abspath)[1] == '': #abspath specifies a directory which may or may not exist
+            if not os.path.exists(abspath):
+                os.makedirs(abspath)
+            output_fname = os.path.join(abspath, basename)
+            output_fname = os.path.splitext(output_fname)[0] + '_critique.avi'
+
+        else: #abspath specifies a file
+            if not os.path.exists(os.path.split(abspath)[0]):
+                os.makedirs(os.path.split(abspath)[0])
+            output_fname = abspath
+
+        assert not os.path.isfile(output_fname), output_fname
+
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        writer = cv2.VideoWriter(output_fname, fourcc, fps = int(frames_per_second), frameSize = (cap_width, cap_height), isColor = True)
 
     if cap.isOpened() is False:
         print("Error opening video stream or file")
+
     while cap.isOpened():
         ret_val, image = cap.read()
+        if not ret_val:
+            break
+
         logger.debug('Pose Estimation')
         humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=4.0)
         body_parts = analyze.extract_body_parts(humans, image)
@@ -74,9 +103,17 @@ if __name__ == '__main__':
         cv2.putText(image,"Critique: %s" %critique ,(10, 85),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.putText(image,"State: %s" %State ,(10, 105),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.putText(image,"Rep Count: %s" %rep_count ,(10, 125),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.imshow('SimpL', image)
         fps_time = time.time()
+
+        if args.output:
+            writer.write(image)
+        else:
+            cv2.imshow('SimpL', image)
+
         if cv2.waitKey(1) == 27:
             break
     cv2.destroyAllWindows()
+    cap.release()
+    if args.output:
+        writer.release()
 logger.debug('Terminated Successfully')
