@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     prev_state = 0 #rest position
     state = 0
-    setrep_count = (0, 0)
+    setrep_count = [0, 0]
 
     while setrep_count[0] < len(args.setrep):
         ret_val, image = cam.read()
@@ -119,8 +119,8 @@ if __name__ == '__main__':
         #cv2.putText(image,"Deviation: %f" %deviation ,(10, 65),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
         cv2.putText(image,"Critique: %s" %critique ,(10, 85),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.putText(image,"State: %s" %State ,(10, 105),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"Set Count: %s" %setrep_count[0]+1, (10, 125), cv2,FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"Rep Count: %s" %setrep_count[1] ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
+        cv2.putText(image,"Set Count: %s" %str(setrep_count[0]+1), (10, 125), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
+        cv2.putText(image,"Rep Count: %s" %str(setrep_count[1]) ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         image = cv2.resize(image, (1200, 1200))
         cv2.imshow('SimpL', image)
         fps_time = time.time

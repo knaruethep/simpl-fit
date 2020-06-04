@@ -36,16 +36,19 @@ def shoulderpress(body_parts, state, side):
         return r, -l
 
     def shoulderpress_angle(body_parts):
-        rshoulder = bp_coordinates(body_parts, 2)
-        relbow = bp_coordinates(body_parts, 3)
-        rwrist = bp_coordinates(body_parts, 4)
         try:
-            if rshoulder and relbow and rwrist:
-                return calculate_angle(rshoulder, relbow, rwrist)
-            else:
-                 return -1
-        except TypeError as e:
-            return -1
+            rshoulder = bp_coordinates(body_parts, 2)
+            relbow = bp_coordinates(body_parts, 3)
+            rwrist = bp_coordinates(body_parts, 4)
+            try:
+                if rshoulder and relbow and rwrist:
+                    return calculate_angle(rshoulder, relbow, rwrist)
+                else:
+                     return -1
+            except TypeError as e:
+                return -1
+        except KeyError as e:
+            return -1;
 
     re_height, le_height = elbow_height(body_parts)
     rextension, lextension = horizontal_extension(body_parts)
@@ -73,13 +76,15 @@ def shoulderpress(body_parts, state, side):
         critique = "Nice form! Keep it up."
 
     elbow_angle = shoulderpress_angle(body_parts)
-    if elbow_angle < (math.pi/3):
-        if state == 1:
-            state = 2
-
-    if elbow_angle > (math.pi/2):
-        if state == 2:
-            state = 1
+    if elbow_angle > 0:
+        if elbow_angle < (math.pi/4):
+            if state == 0:
+                state = 1
+            elif state == 2:
+                state = 1
+        elif elbow_angle > (math.pi/2):
+            if state == 1:
+                state = 2
 
     return (rextension, lextension), critique, state
 

@@ -41,7 +41,7 @@ if __name__ == '__main__':
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
     prev_state = 0 #rest position
     state = 0
-    setrep_count = (0, 0)
+    setrep_count = [0, 0]
 
     w, h = model_wh(args.resolution)
     e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
@@ -107,8 +107,8 @@ if __name__ == '__main__':
         #cv2.putText(image,"Deviation: %f" %deviation ,(10, 65),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
         cv2.putText(image,"Critique: %s" %critique ,(10, 85),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.putText(image,"State: %s" %State ,(10, 105),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"Set Count: %s" %setrep_count[0]+1, (10, 125), cv2,FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"Rep Count: %s" %setrep_count[1] ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
+        cv2.putText(image,"Set Count: %s" %str(setrep_count[0]+1), (10, 125), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
+        cv2.putText(image,"Rep Count: %s" %str(setrep_count[1]) ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.imshow('SimpL', image)
         fps_time = time.time()
         if cv2.waitKey(1) == 27:
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             setrep_count[0] += 1
             setrep_count[1] = 0
         if cv2.waitKey(1) == 27:
-        cv2.putText(image,"Rep Count: %s" %rep_count ,(10, 125),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
+
         fps_time = time.time()
 
         if args.output:
