@@ -56,10 +56,10 @@ if __name__ == '__main__':
         e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h), trt_bool=str2bool(args.tensorrt))
     else:
         e = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368), trt_bool=str2bool(args.tensorrt))
-    #logger.debug('Camera read')
+    logger.debug('Camera read')
     cam = cv2.VideoCapture(args.camera)
     ret_val, image = cam.read()
-    #logger.info('Camera image=%dx%d' % (image.shape[1], image.shape[0]))
+    logger.info('Camera image=%dx%d' % (image.shape[1], image.shape[0]))
 
     frames_per_second = cam.get(cv2.CAP_PROP_FPS)
     num_frames = int(cam.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     while setrep_count[0] < len(args.setrep):
         ret_val, image = cam.read()
-        #logger.debug('Pose Estimation')
+        logger.debug('Pose Estimation')
         humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=args.resize_out_ratio)
         body_parts = analyze.extract_body_parts(humans, image)
         if body_parts == -1:
@@ -104,7 +104,7 @@ if __name__ == '__main__':
             setrep_count[1] += 1
 
 
-        #logger.debug('Crtique Assignment')
+        logger.debug('Crtique Assignment')
         image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
         if state == 0:
             State = "rest"
@@ -113,7 +113,7 @@ if __name__ == '__main__':
         elif state == 2:
             State = "down"
 
-        #logger.debug('Displaying')
+        logger.debug('Displaying')
         cv2.putText(image,"FPS: %f" % (1.0 / (time.time() - fps_time)),(10, 15),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
         cv2.putText(image,"Workout: %s" %args.workout ,(10, 45),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255, 0, 0), 2)
         #cv2.putText(image,"Deviation: %f" %deviation ,(10, 65),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
         if cv2.waitKey(1) == 27:
             break
-        #logger.debug('finished+')
+        logger.debug('finished+')
 
     cv2.destroyAllWindows()
 logger.debug('Terminated Successfully')
