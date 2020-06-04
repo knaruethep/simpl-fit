@@ -33,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--workout', type=str, default="shoulderpress",
                         help='shoulderpress, plank, curls, squats, pushup')
     parser.add_argument('--side', type=str, default="L", help='L for left or R for right')
-    parser.add_argument('--output', type=str, help='A file or directory to save output visualizations. If directory does\'t exist, it will be created.')
+    parser.add_argument('--output', type=str, help='A file or directory to save output visualizations. If directory doesn\'t exist, it will be created.')
     args = parser.parse_args()
 
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))

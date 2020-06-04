@@ -21,7 +21,7 @@ args :-
 --model options:cmu / mobilenet_thin / mobilenet_v2_large / mobilenet_v2_small default:mobilenet_thin
 --workout options:shoulderpress / plank / curls / squats / pushup default:shoulderpress
 --side options:L / R default:L
---output A file or directory to save output visualizations. If directory does\'t exist, it will be created.
+--output A file or directory to save output visualizations. If directory doesn't exist, it will be created.
 ```
 ### Video
 ```bash
@@ -36,5 +36,5 @@ args :-
 --model options:cmu / mobilenet_thin / mobilenet_v2_large / mobilenet_v2_small default:mobilenet_thin
 --workout options:shoulderpress / plank / curls / squats / pushup default:shoulderpress
 --side options:L / R default:L
---output A file or directory to save output visualizations. If directory does\'t exist, it will be created.
+--output A file or directory to save output visualizations. If directory doesn't exist, it will be created.
 ```
