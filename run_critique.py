@@ -39,13 +39,14 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='mobilenet_thin', help='cmu / mobilenet_thin / mobilenet_v2_large / mobilenet_v2_small')
     parser.add_argument('--show-process', type=bool, default=False,
                         help='for debug purpose, if enabled, speed for inference is dropped.')
-    
+
     parser.add_argument('--tensorrt', type=str, default="False",
                         help='for tensorrt process.')
     parser.add_argument('--workout', type=str, default="shoulderpress",
                         help='shoulderpress, plank, curls, squats, pushup')
     parser.add_argument('--side', type=str, default="L", help='L for left or R for right')
     parser.add_argument('--setrep', nargs='+', type=int, default=[10], help='Sets and respective reps') #e.g. --setrep 10 8 6 --> args.setrep = [10, 8 ,6]
+    parser.add_argument('--output', type=str, help='A file or directory to save output visualizations. If directory doesn\'t exist, it will be created.')
     args = parser.parse_args()
 
     logger.debug('Initializating model %s : %s' % (args.model, get_graph_path(args.model)))
@@ -59,6 +60,29 @@ if __name__ == '__main__':
     cam = cv2.VideoCapture(args.camera)
     ret_val, image = cam.read()
     #logger.info('Camera image=%dx%d' % (image.shape[1], image.shape[0]))
+
+    frames_per_second = cam.get(cv2.CAP_PROP_FPS)
+    num_frames = int(cam.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap_width = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cap_height = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    if args.output:
+        abspath = os.path.join(os.path.abspath('.'), args.output)
+
+        if os.path.splitext(abspath)[1] == '': #abspath specifies a directory which may or may not exist
+            if not os.path.exists(abspath):
+                os.makedirs(abspath)
+            output_fname = abspath + 'video_critique.avi'
+
+        else: #abspath specifies a file
+            if not os.path.exists(os.path.split(abspath)[0]):
+                os.makedirs(os.path.split(abspath)[0])
+            output_fname = abspath
+
+        assert not os.path.isfile(output_fname), output_fname
+
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        writer = cv2.VideoWriter(output_fname, fourcc, fps = int(frames_per_second), frameSize = (cap_width, cap_height), isColor = True)
 
     prev_state = 0 #rest position
     state = 0
@@ -103,6 +127,11 @@ if __name__ == '__main__':
         if setrep_count[1] == args.setrep[setrep_count[0]]:
             setrep_count[0] += 1
             setrep_count[1] = 0
+        fps_time = time.time()
+
+        if args.output:
+            writer.write(image)
+
         if cv2.waitKey(1) == 27:
             break
         #logger.debug('finished+')
