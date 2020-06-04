@@ -35,13 +35,25 @@ def shoulderpress(body_parts, state, side):
 
         return r, -l
 
+    def shoulderpress_angle(body_parts):
+        rshoulder = bp_coordinates(body_parts, 2)
+        relbow = bp_coordinates(body_parts, 3)
+        rwrist = bp_coordinates(body_parts, 4)
+        try:
+            if rshoulder and relbow and rwrist:
+                return calculate_angle(rshoulder, relbow, rwrist)
+            else:
+                 return -1
+        except TypeError as e:
+            return -1
+
     re_height, le_height = elbow_height(body_parts)
     rextension, lextension = horizontal_extension(body_parts)
     thresh = 15
     critique = ""
     if rextension > thresh and lextension > thresh:
         critique = "You're over extending both of your arms." \
-                 + " Bring your wrist over your elbow."
+                 + " Bring your wrist over your elbow." 
     elif rextension > thresh:
         critique = "You're over extending your right arm." \
                  + " Bring your wrist over your elbow."
@@ -59,6 +71,15 @@ def shoulderpress(body_parts, state, side):
                  + " Bring your wrist over your elbow."
     else:
         critique = "Nice form! Keep it up."
+
+    elbow_angle = shoulderpress_angle(body_parts)
+    if elbow_angle < (math.pi/3):
+        if state == 1:
+            state = 2
+
+    if elbow_angle > (math.pi/2):
+        if state == 2:
+            state = 1
 
     return (rextension, lextension), critique, state
 
@@ -298,7 +319,7 @@ def squats(body_parts, state, side):
     squat_depth = squat_depth_angle(body_parts)
     if squat_depth < (math.pi/2):
         if state == 1:
-            state = 2
+            state = 2   
 
     if squat_depth > (math.pi - 0.5):
         if state == 2:

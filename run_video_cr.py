@@ -34,11 +34,15 @@ if __name__ == '__main__':
                         help='shoulderpress, plank, curls, squats, pushup')
     parser.add_argument('--side', type=str, default="L", help='L for left or R for right')
     parser.add_argument('--output', type=str, help='A file or directory to save output visualizations.')
+    parser.add_argument('--setrep', nargs='+', type=int, default=[10], help='Sets and respective reps') #e.g. --setrep 10 8 6 --> args.setrep = [10, 8 ,6]
+
     args = parser.parse_args()
 
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
     prev_state = 0 #rest position
-    rep_count = 0
+    state = 0
+    setrep_count = (0, 0)
+
     w, h = model_wh(args.resolution)
     e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
     cap = cv2.VideoCapture(args.video)
@@ -57,9 +61,10 @@ if __name__ == '__main__':
             critique = "No critique"
             state = prev_state
         else:
+            prev_state = state
             deviation, critique, state = analyze.analyze_workout(body_parts, args.workout, prev_state, args.side)
         if prev_state == 2 and state == 1:
-            rep_count += 1
+            setrep_count[1] += 1
         logger.debug('Crtique Assignment')
         image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
         if state == 0:
@@ -73,43 +78,16 @@ if __name__ == '__main__':
         #cv2.putText(image,"Deviation: %f" %deviation ,(10, 65),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
         cv2.putText(image,"Critique: %s" %critique ,(10, 85),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.putText(image,"State: %s" %State ,(10, 105),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"Rep Count: %s" %rep_count ,(10, 125),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
+        cv2.putText(image,"Set Count: %s" %setrep_count[0]+1, (10, 125), cv2,FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
+        cv2.putText(image,"Rep Count: %s" %setrep_count[1] ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.imshow('SimpL', image)
         fps_time = time.time()
         if cv2.waitKey(1) == 27:
             break
-        
-        if args.output:
-            if os.path.isdir(args.output):
-                output_fname = os.path.join(args.output, basename)
-                output_fname = os.path.splitext(output_fname)[0] + ".mkv"
-            else:
-                output_fname = args.output
-            assert not os.path.isfile(output_fname), output_fname
-            output_file = cv2.VideoWriter(
-                filename=output_fname,
-                # some installation of opencv may not support x264 (due to its license),
-                # you can try other format (e.g. MPEG)
-                fourcc=cv2.VideoWriter_fourcc(*"x264"),
-                fps=float(frames_per_second),
-                frameSize=(width, height),
-                isColor=True,
-            )
-        assert os.path.isfile(args.video_input)
-        for vis_frame in tqdm.tqdm(demo.run_on_video(video), total=num_frames):
-            if args.output:
-                output_file.write(vis_frame)
-            else:
-                cv2.namedWindow(basename, cv2.WINDOW_NORMAL)
-                cv2.imshow(basename, vis_frame)
-                if cv2.waitKey(1) == 27:
-                    break  # esc to quit
-        video.release()
-        if args.output:
-            output_file.release()
-        else:
-            cv2.destroyAllWindows()
-
+        if setrep_count[1] == args.setrep[setrep_count[0]]:
+            setrep_count[0] += 1
+            setrep_count[1] = 0
+        if cv2.waitKey(1) == 27:
 
     cv2.destroyAllWindows()
 logger.debug('Terminated Successfully')
