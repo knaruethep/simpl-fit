@@ -121,7 +121,6 @@ if __name__ == '__main__':
         cv2.putText(image,"State: %s" %State ,(10, 105),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.putText(image,"Set Count: %s" %setrep_count[0]+1, (10, 125), cv2,FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         cv2.putText(image,"Rep Count: %s" %setrep_count[1] ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        image = cv2.resize(image, (1200, 1200))
         cv2.imshow('SimpL', image)
         fps_time = time.time
         if setrep_count[1] == args.setrep[setrep_count[0]]:
