@@ -33,7 +33,6 @@ if __name__ == '__main__':
     parser.add_argument('--workout', type=str, default="shoulderpress",
                         help='shoulderpress, plank, curls, squats, pushup')
     parser.add_argument('--side', type=str, default="L", help='L for left or R for right')
-    parser.add_argument('--output', type=str, help='A file or directory to save output visualizations.')
     parser.add_argument('--setrep', nargs='+', type=int, default=[10], help='Sets and respective reps') #e.g. --setrep 10 8 6 --> args.setrep = [10, 8 ,6]
     parser.add_argument('--output', type=str, help='A file or directory to save output visualizations. If directory doesn\'t exist, it will be created.')
     args = parser.parse_args()
@@ -116,7 +115,6 @@ if __name__ == '__main__':
         if setrep_count[1] == args.setrep[setrep_count[0]]:
             setrep_count[0] += 1
             setrep_count[1] = 0
-        if cv2.waitKey(1) == 27:
 
         fps_time = time.time()
 
