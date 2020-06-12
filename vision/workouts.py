@@ -1,45 +1,45 @@
 from .helpers import *
 
-def shoulderpress(body_parts, state, side):
+def shoulderpress(body_parts, state, side, w, h):
     """
     Problems:
     -> Too deep on down
     -> Arms straight extended outwards
     """
 
-    def elbow_height(body_parts):
+    def elbow_height(body_parts, w, h):
         try:
-            rshoulder_pos = bp_coordinates(body_parts, 2) 
-            lshoulder_pos = bp_coordinates(body_parts, 5) 
-            relbow_pos = bp_coordinates(body_parts, 3)
-            lelbow_pos = bp_coordinates(body_parts, 6)
+            rshoulder_pos = bp_coordinates(body_parts, 2, w, h)
+            lshoulder_pos = bp_coordinates(body_parts, 5, w, h)
+            relbow_pos = bp_coordinates(body_parts, 3, w, h)
+            lelbow_pos = bp_coordinates(body_parts, 6, w, h)
         except KeyError as e:
             return 0, 0
 
-        return 240*(relbow_pos[1] - rshoulder_pos[1]), 240*(lelbow_pos[1] - lshoulder_pos[1])
+        return relbow_pos[1] - rshoulder_pos[1], lelbow_pos[1] - lshoulder_pos[1]
 
-    def horizontal_extension(body_parts):
+    def horizontal_extension(body_parts, w, h):
         r, l = 0, 0
         try:
-            rwrist_pos = bp_coordinates(body_parts, 4) 
-            relbow_pos = bp_coordinates(body_parts, 3)
-            r = 240*(relbow_pos[0] - rwrist_pos[0])
+            rwrist_pos = bp_coordinates(body_parts, 4, w, h)
+            relbow_pos = bp_coordinates(body_parts, 3, w, h)
+            r = relbow_pos[0] - rwrist_pos[0]
         except KeyError as e:
             r = 0
         try:
-            lwrist_pos = bp_coordinates(body_parts, 7) 
-            lelbow_pos = bp_coordinates(body_parts, 6)
-            l = 240*(lelbow_pos[0] - lwrist_pos[0])
+            lwrist_pos = bp_coordinates(body_parts, 7, w, h)
+            lelbow_pos = bp_coordinates(body_parts, 6, w, h)
+            l = lelbow_pos[0] - lwrist_pos[0]
         except KeyError as e:
             l = 0
 
         return r, -l
 
-    def shoulderpress_angle(body_parts):
+    def shoulderpress_angle(body_parts, w, h):
         try:
-            rshoulder = bp_coordinates(body_parts, 2)
-            relbow = bp_coordinates(body_parts, 3)
-            rwrist = bp_coordinates(body_parts, 4)
+            rshoulder = bp_coordinates(body_parts, 2, w, h)
+            relbow = bp_coordinates(body_parts, 3, w, h)
+            rwrist = bp_coordinates(body_parts, 4, w, h)
             try:
                 if rshoulder and relbow and rwrist:
                     return calculate_angle(rshoulder, relbow, rwrist)
@@ -50,13 +50,13 @@ def shoulderpress(body_parts, state, side):
         except KeyError as e:
             return -1;
 
-    re_height, le_height = elbow_height(body_parts)
-    rextension, lextension = horizontal_extension(body_parts)
+    re_height, le_height = elbow_height(body_parts, w, h)
+    rextension, lextension = horizontal_extension(body_parts, w, h)
     thresh = 15
     critique = ""
     if rextension > thresh and lextension > thresh:
         critique = "You're over extending both of your arms." \
-                 + " Bring your wrist over your elbow." 
+                 + " Bring your wrist over your elbow."
     elif rextension > thresh:
         critique = "You're over extending your right arm." \
                  + " Bring your wrist over your elbow."
@@ -75,7 +75,7 @@ def shoulderpress(body_parts, state, side):
     else:
         critique = "Nice form! Keep it up."
 
-    elbow_angle = shoulderpress_angle(body_parts)
+    elbow_angle = shoulderpress_angle(body_parts, w, h)
     if elbow_angle > 0:
         if elbow_angle < (math.pi/4):
             if state == 0:
@@ -89,7 +89,7 @@ def shoulderpress(body_parts, state, side):
     return (rextension, lextension), critique, state
 
 
-def plank(body_parts):
+def plank(body_parts, state, side, w, h):
     """
     Problems:
     ->  Deviation in waist:
@@ -104,17 +104,17 @@ def plank(body_parts):
             Threshold = 0.1
     """
 
-    def optimal_height_hips(body_parts):
-        shoulder_pos = bp_coordinates_average(body_parts, 2, 5) 
-        ankle_pos = bp_coordinates_average(body_parts, 10, 13)
-    
-    def deviation_in_hips(body_parts, optimal_angle):
+    def optimal_height_hips(body_parts, w, h):
+        shoulder_pos = bp_coordinates_average(body_parts, 2, 5, w, h)
+        ankle_pos = bp_coordinates_average(body_parts, 10, 13, w, h)
+
+    def deviation_in_hips(body_parts, optimal_angle, w, h):
         """
         Calculate the deviation in the hips from an optimal angle.
         """
-        shoulder_pos = bp_coordinates_average(body_parts, 2, 5)
-        hip_pos = bp_coordinates_average(body_parts, 8, 11)    
-        ankle_pos = bp_coordinates_average(body_parts, 10, 13)
+        shoulder_pos = bp_coordinates_average(body_parts, 2, 5, w, h)
+        hip_pos = bp_coordinates_average(body_parts, 8, 11, w, h)
+        ankle_pos = bp_coordinates_average(body_parts, 10, 13, w, h)
         try:
             # calculate angle
             angle_detected = calculate_angle(shoulder_pos, hip_pos, ankle_pos)
@@ -123,13 +123,17 @@ def plank(body_parts):
         # calculate percent deviation
         deviation = percent_deviation(optimal_angle, angle_detected)
         return deviation
-    
-    return deviation_in_hips(body_parts, math.pi)
 
-def curls(body_parts, state, side):
+    critique = "No critique"
+    if deviation_in_hips(body_parts, math.pi, w, h) > .3:
+        critique = "Fix"
+
+    return deviation_in_hips(body_parts, math.pi, w, h), critique, state-1
+
+def curls(body_parts, state, side, w, h):
     """
     side - left or right, depending on user
-    
+
     Problems:
     ->  Horizontal deviation in humerous to upper body:
         Body parts:
@@ -143,16 +147,16 @@ def curls(body_parts, state, side):
             Threshold = 0.1
     """
 
-    def angle_of_elbow(body_parts, side):
+    def angle_of_elbow(body_parts, side, w, h):
         try:
             if side == 'L':
-                shoulder_pos = bp_coordinates(body_parts, 5)
-                elbow_pos = bp_coordinates(body_parts, 6)
-                wrist_pos = bp_coordinates(body_parts, 7)
+                shoulder_pos = bp_coordinates(body_parts, 5, w, h)
+                elbow_pos = bp_coordinates(body_parts, 6, w, h)
+                wrist_pos = bp_coordinates(body_parts, 7, w, h)
             elif side == 'R':
-                shoulder_pos = bp_coordinates(body_parts, 2)
-                elbow_pos = bp_coordinates(body_parts, 3)
-                wrist_pos = bp_coordinates(body_parts, 4)
+                shoulder_pos = bp_coordinates(body_parts, 2, w, h)
+                elbow_pos = bp_coordinates(body_parts, 3, w, h)
+                wrist_pos = bp_coordinates(body_parts, 4, w, h)
             else:
                 return -1
         except KeyError as e:
@@ -162,25 +166,25 @@ def curls(body_parts, state, side):
 
         return angle_detected
 
-    
-    def deviation_of_elbow(body_parts, side, optimal_angle):
+
+    def deviation_of_elbow(body_parts, side, optimal_angle, w, h):
         """
         Calculate the angular deviation of the elbow from the optimal
         """
         try:
             if side == 'L':
-                shoulder_pos = bp_coordinates(body_parts, 5)
-                elbow_pos = bp_coordinates(body_parts, 6)
-                hip_pos = bp_coordinates(body_parts, 11)
+                shoulder_pos = bp_coordinates(body_parts, 5, w, h)
+                elbow_pos = bp_coordinates(body_parts, 6, w, h)
+                hip_pos = bp_coordinates(body_parts, 11, w, h)
             elif side == 'R':
-                shoulder_pos = bp_coordinates(body_parts, 2)
-                elbow_pos = bp_coordinates(body_parts, 3)
-                hip_pos = bp_coordinates(body_parts, 8)
+                shoulder_pos = bp_coordinates(body_parts, 2, w, h)
+                elbow_pos = bp_coordinates(body_parts, 3, w, h)
+                hip_pos = bp_coordinates(body_parts, 8, w, h)
             else:
                 return -1
         except KeyError as e:
             return -1
-        
+
         try:
             if shoulder_pos and hip_pos and elbow_pos:
                 # calculate angle
@@ -189,31 +193,31 @@ def curls(body_parts, state, side):
                 return -1
         except TypeError as e:
             raise e
-        
+
         # calculate percent deviation
         deviation = percent_deviation(optimal_angle, angle_detected)
         return deviation
 
     # Determine critique
     critique = "Nice form!"
-    deviation = deviation_of_elbow(body_parts, side, 0)
+    deviation = deviation_of_elbow(body_parts, side, 0, w, h)
     if deviation > 0.25:
         try:
             if side == 'L':
-                elbow_pos = bp_coordinates(body_parts, 6)
-                hip_pos = bp_coordinates(body_parts, 11)
+                elbow_pos = bp_coordinates(body_parts, 6, w, h)
+                hip_pos = bp_coordinates(body_parts, 11, w, h)
 
                 if elbow_pos[0] < hip_pos[0]:
                     critique = "Move your elbow backward."
-                else: 
+                else:
                     critique = "Move your elbow forward."
             elif side == 'R':
-                elbow_pos = bp_coordinates(body_parts, 3)
-                hip_pos = bp_coordinates(body_parts, 8)
+                elbow_pos = bp_coordinates(body_parts, 3, w, h)
+                hip_pos = bp_coordinates(body_parts, 8, w, h)
 
                 if elbow_pos[0] < hip_pos[0]:
                     critique = "Move your elbow forward."
-                else: 
+                else:
                     critique = "Move your elbow backward."
             else:
                 return -1
@@ -221,7 +225,7 @@ def curls(body_parts, state, side):
             return -1
 
     # Determine if state change
-    elbow_angle = angle_of_elbow(body_parts, side)
+    elbow_angle = angle_of_elbow(body_parts, side, w, h)
     if state == 1 and elbow_angle > 2.7:
         state = 2
     elif state == 2 and elbow_angle < 0.7:
@@ -230,7 +234,7 @@ def curls(body_parts, state, side):
 
     return deviation, critique, state
 
-def pushup(body_parts, state, side):
+def pushup(body_parts, state, side, w, h):
     """
     Problems:
     ->  Deviation in waist:
@@ -244,14 +248,14 @@ def pushup(body_parts, state, side):
             OptimalAngle = pi
             Threshold = 0.1
     """
-    
+
     def deviation_in_hips(body_parts, optimal_angle):
         # average shoulders
-        shoulder_pos = bp_coordinates_average(body_parts, 2, 5)
+        shoulder_pos = bp_coordinates_average(body_parts, 2, 5, w, h)
         # average hips
-        hip_pos = bp_coordinates_average(body_parts, 8, 11)    
+        hip_pos = bp_coordinates_average(body_parts, 8, 11, w, h)
         # average ankles
-        ankle_pos = bp_coordinates_average(body_parts, 10, 13)
+        ankle_pos = bp_coordinates_average(body_parts, 10, 13, w, h)
         try:
             if shoulder_pos and hip_pos and ankle_pos:
                 # calculate angle
@@ -266,7 +270,7 @@ def pushup(body_parts, state, side):
 
     return deviation_in_hips(body_parts, math.pi), 0, 0
 
-def squats(body_parts, state, side):
+def squats(body_parts, state, side, w, h):
     """
     Problems:
     - Squat depth
@@ -298,10 +302,10 @@ def squats(body_parts, state, side):
             OptimalDeviation = 0
             Threshold = TBD
     """
-    def squat_depth_angle(body_parts):
-        ankle = bp_coordinates_average(body_parts, 10, 13)
-        knee = bp_coordinates_average(body_parts, 9, 12)
-        hip = bp_coordinates_average(body_parts, 8, 11)
+    def squat_depth_angle(body_parts, w, h):
+        ankle = bp_coordinates_average(body_parts, 10, 13, w, h)
+        knee = bp_coordinates_average(body_parts, 9, 12, w, h)
+        hip = bp_coordinates_average(body_parts, 8, 11, w, h)
         try:
             if ankle and knee and hip:
                 return calculate_angle(ankle, knee, hip)
@@ -310,9 +314,9 @@ def squats(body_parts, state, side):
         except TypeError as e:
             return -1
 
-    def tibia_deviation(body_parts):
-        ankle = bp_coordinates_average(body_parts, 10, 13)
-        knee = bp_coordinates_average(body_parts, 9, 12)
+    def tibia_deviation(body_parts, w, h):
+        ankle = bp_coordinates_average(body_parts, 10, 13, w, h)
+        knee = bp_coordinates_average(body_parts, 9, 12, w, h)
         try:
             if ankle and knee:
                 return 240*(ankle[0] - knee[0])**2
@@ -320,21 +324,21 @@ def squats(body_parts, state, side):
                 return -1
         except:
             return -1
-    
-    squat_depth = squat_depth_angle(body_parts)
+
+    squat_depth = squat_depth_angle(body_parts, w, h)
     if squat_depth < (math.pi/2):
         if state == 1:
-            state = 2   
+            state = 2
 
     if squat_depth > (math.pi - 0.5):
         if state == 2:
             state = 1
 
-    deviation = tibia_deviation(body_parts)
+    deviation = tibia_deviation(body_parts, w, h)
     if abs(deviation) > 1.45:
         critique = "Keep your knees above your toes!"
     else:
         critique = "Nice form! Keep it up."
-        
+
 
     return squat_depth, critique, state

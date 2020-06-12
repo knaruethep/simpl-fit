@@ -11,13 +11,13 @@ from tf_pose.estimator import TfPoseEstimator
 from tf_pose.networks import get_graph_path, model_wh
 from vision import workouts
 
-def extract_body_parts(humans, image, rotate=None):
+def extract_body_parts(humans, image, w, h, rotate=None):
     """
     Perform inference on image for body part locations.
 
     returns the best human subject object
     """
-   
+
     if rotate:
         image = imutils.rotate(image, rotate)
 
@@ -25,7 +25,7 @@ def extract_body_parts(humans, image, rotate=None):
         return -1
 
     # extract the best subject
-    subject = best_subject(humans)
+    subject = best_subject(humans, w, h)
 
     if subject:
         body_parts = subject.body_parts
@@ -46,7 +46,7 @@ def extract_body_parts(humans, image, rotate=None):
     return body_parts
 
 
-def analyze_workout(body_parts, workout, state, side=None):
+def analyze_workout(body_parts, w, h, workout, state, timed = False, side=None):
     """
     Run the appropriate analyzer.
 
@@ -55,9 +55,17 @@ def analyze_workout(body_parts, workout, state, side=None):
 
     analyzer = getattr(workouts, workout)
 
-    if side:
-        deviation, critique, state = analyzer(body_parts, state, side)
+    if timed:
+        deviation, critique, state = analyzer(body_parts, state, side, w, h)
+        if state == 0:
+            state = "done"
+        return deviation, critique, state
     else:
-        deviation, critique, state = analyzer(body_parts, state)
+        pass
+
+    if side:
+        deviation, critique, state = analyzer(body_parts, state, side, w, h)
+    else:
+        deviation, critique, state = analyzer(body_parts, state, w, h)
 
     return deviation, critique, state

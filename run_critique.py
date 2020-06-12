@@ -24,17 +24,17 @@ fps_time = 0
 # Load model
 
 def str2bool(v):
-    return v.lower() in ("yes", "true", "t", "1")
+    return v.lower() in {"yes", "true", "t", "1"}
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='tf-pose-estimation realtime webcam')
     parser.add_argument('--camera', type=int, default=0)
 
-    parser.add_argument('--resize', type=str, default='0x0',
+    parser.add_argument('--resize', type=str, default='432x368',
                         help='if provided, resize images before they are processed. default=0x0, Recommends : 432x368 or 656x368 or 1312x736 ')
     parser.add_argument('--resize-out-ratio', type=float, default=4.0,
-                        help='if provided, resize heatmaps before they are post-processed. default=1.0')
+                        help='if provided, resize heatmaps before they are post-processed. default=4.0')
 
     parser.add_argument('--model', type=str, default='mobilenet_thin', help='cmu / mobilenet_thin / mobilenet_v2_large / mobilenet_v2_small')
     parser.add_argument('--show-process', type=bool, default=False,
@@ -46,16 +46,15 @@ if __name__ == '__main__':
                         help='shoulderpress, plank, curls, squats, pushup')
     parser.add_argument('--side', type=str, default="L", help='L for left or R for right')
     parser.add_argument('--setrep', nargs='+', type=int, default=[10], help='Sets and respective reps') #e.g. --setrep 10 8 6 --> args.setrep = [10, 8 ,6]
+    parser.add_argument('--time', type = int, default = 30, help='How long to do the exercise')
     parser.add_argument('--output', type=str, help='A file or directory to save output visualizations. If directory doesn\'t exist, it will be created.')
     args = parser.parse_args()
 
     logger.debug('Initializating model %s : %s' % (args.model, get_graph_path(args.model)))
     w, h = model_wh(args.resize)
-    print(w, h)
-    if w > 0 and h > 0:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h), trt_bool=str2bool(args.tensorrt))
-    else:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368), trt_bool=str2bool(args.tensorrt))
+
+    e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h), trt_bool=str2bool(args.tensorrt))
+
     logger.debug('Camera read')
     cam = cv2.VideoCapture(args.camera)
     ret_val, image = cam.read()
@@ -92,16 +91,17 @@ if __name__ == '__main__':
         ret_val, image = cam.read()
         logger.debug('Pose Estimation')
         humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=args.resize_out_ratio)
-        body_parts = analyze.extract_body_parts(humans, image)
+        body_parts = analyze.extract_body_parts(humans, image, w, h)
         if body_parts == -1:
             deviation = -1.0000
             critique = "No critique"
             state = prev_state
         else:
             prev_state = state
-            deviation, critique, state = analyze.analyze_workout(body_parts, args.workout, prev_state, args.side)
-        if prev_state == 2 and state == 1:
-            setrep_count[1] += 1
+            deviation, critique, state = analyze.analyze_workout(body_parts, w, h, args.workout, prev_state, args.side)
+        if args.workout != 'plank':
+            if prev_state == 2 and state == 1:
+                setrep_count[1] += 1
 
 
         logger.debug('Crtique Assignment')
@@ -123,7 +123,6 @@ if __name__ == '__main__':
         cv2.putText(image,"Rep Count: %s" %str(setrep_count[1]) ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
         #image = cv2.resize(image, (1200, 1200))
         cv2.imshow('SimpL', image)
-        fps_time = time.time
         if setrep_count[1] == args.setrep[setrep_count[0]]:
             setrep_count[0] += 1
             setrep_count[1] = 0
