@@ -11,6 +11,7 @@ import os
 from tf_pose.estimator import TfPoseEstimator
 from tf_pose.networks import get_graph_path, model_wh
 from vision import analyze
+from vision import workouts
 
 logger = logging.getLogger('TfPoseEstimator-WebCam')
 logger.setLevel(logging.DEBUG)
@@ -78,8 +79,6 @@ if __name__ == '__main__':
                 os.makedirs(os.path.split(abspath)[0])
             output_fname = abspath
 
-        assert not os.path.isfile(output_fname), output_fname
-
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         writer = cv2.VideoWriter(output_fname, fourcc, fps = int(frames_per_second), frameSize = (cap_width, cap_height), isColor = True)
 
@@ -87,49 +86,35 @@ if __name__ == '__main__':
     state = 0
     setrep_count = [0, 0]
 
-    while setrep_count[0] < len(args.setrep):
+    shoulderpress = workouts.ShoulderPress(0, 0, w, h)
+    check_specific_critique = ""
+    prev_rep = 0
+    while True:
         ret_val, image = cam.read()
-        logger.debug('Pose Estimation')
+        if args.output:
+            writer.write(image)
+        #
+        # logger.debug('Pose Estimation')
         humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=args.resize_out_ratio)
         body_parts = analyze.extract_body_parts(humans, image, w, h)
-        if body_parts == -1:
-            deviation = -1.0000
-            critique = "No critique"
-            state = prev_state
-        else:
-            prev_state = state
-            deviation, critique, state = analyze.analyze_workout(body_parts, w, h, args.workout, prev_state, args.side)
-        if args.workout != 'plank':
-            if prev_state == 2 and state == 1:
-                setrep_count[1] += 1
+        bool, critique, func = shoulderpress.run_critique(body_parts, check_specific_critique)
+
+        if bool:
+            prev_rep = shoulderpress.reps
+            check_specific_critique = func
+
+        if shoulderpress.reps != prev_rep:
+            check_specific_critique = ""
 
 
         logger.debug('Crtique Assignment')
         image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
-        if state == 0:
-            State = "rest"
-        elif state == 1:
-            State = "up"
-        elif state == 2:
-            State = "down"
-
         logger.debug('Displaying')
-        cv2.putText(image,"FPS: %f" % (1.0 / (time.time() - fps_time)),(10, 15),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
+        cv2.putText(image,"FPS: %f" %(1.0/(time.time()-fps_time)), (10, 15),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
         cv2.putText(image,"Workout: %s" %args.workout ,(10, 45),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(255, 0, 0), 2)
-        #cv2.putText(image,"Deviation: %f" %deviation ,(10, 65),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 0), 2)
         cv2.putText(image,"Critique: %s" %critique ,(10, 85),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"State: %s" %State ,(10, 105),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"Set Count: %s" %str(setrep_count[0]+1), (10, 125), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        cv2.putText(image,"Rep Count: %s" %str(setrep_count[1]) ,(10, 145),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 0, 255), 2)
-        #image = cv2.resize(image, (1200, 1200))
         cv2.imshow('SimpL', image)
-        if setrep_count[1] == args.setrep[setrep_count[0]]:
-            setrep_count[0] += 1
-            setrep_count[1] = 0
         fps_time = time.time()
-
-        if args.output:
-            writer.write(image)
 
         if cv2.waitKey(1) == 27:
             break

@@ -1,92 +1,193 @@
 from .helpers import *
+import numpy as np
 
-def shoulderpress(body_parts, state, side, w, h):
+class ShoulderPress:
+    def __init__(self, sets, reps, w, h):
+        self.w = w
+        self.h = h
+        self.history = []
+        self.wrist_min_pos = h
+        self.wrist_max_pos = 0
+        self.state = 0 #down state
+        self.total_sets = sets
+        self.total_reps = reps
+        self.sets = 0
+        self.reps = 0
     """
     Problems:
     -> Too deep on down
     -> Arms straight extended outwards
     """
+    def run_critique(self, body_parts, check_specific_critique):
+        self.add_to_history(body_parts)
 
-    def elbow_height(body_parts, w, h):
-        try:
-            rshoulder_pos = bp_coordinates(body_parts, 2, w, h)
-            lshoulder_pos = bp_coordinates(body_parts, 5, w, h)
-            relbow_pos = bp_coordinates(body_parts, 3, w, h)
-            lelbow_pos = bp_coordinates(body_parts, 6, w, h)
-        except KeyError as e:
-            return 0, 0
+        if not check_specific_critique:
+            bool, critique, name = self.horizontal_extension_critique(body_parts, hist = False)
+            if bool:
+                return bool, critique, name
 
-        return relbow_pos[1] - rshoulder_pos[1], lelbow_pos[1] - lshoulder_pos[1]
+            bool, critique, name = self.elbow_lock_critique(body_parts, hist = False)
+            if bool:
+                return bool, critique, name
 
-    def horizontal_extension(body_parts, w, h):
+            bool, critique, name = self.full_range_critique(body_parts, hist = False)
+            if bool:
+                return bool, critique, name
+        else:
+            critique_func = getattr(self, check_specific_critique)
+            bool, critique, name = critique_func(body_parts, hist = False)
+            return bool, critique, name
+            
+        return False, "No critique", ""
+
+    def horizontal_extension_critique(self, body_parts, hist = True):
+        if hist:
+            self.add_to_history(body_parts)
+        self.update_state(body_parts)
+
         r, l = 0, 0
+        rerror, lerror = False, False
+        thresh = 15 * math.pi / 180
+
         try:
-            rwrist_pos = bp_coordinates(body_parts, 4, w, h)
-            relbow_pos = bp_coordinates(body_parts, 3, w, h)
-            r = relbow_pos[0] - rwrist_pos[0]
+            rwrist_pos = bp_coordinates(body_parts, 4, self.w, self.h)
+            relbow_pos = bp_coordinates(body_parts, 3, self.w, self.h)
+            relbow_above_pos = (relbow_pos[0], relbow_pos[1] - 5)
+            r = calculate_angle(rwrist_pos, relbow_pos, relbow_above_pos)
+
+            if r > thresh:
+                rerror = True
+
         except KeyError as e:
             r = 0
         try:
-            lwrist_pos = bp_coordinates(body_parts, 7, w, h)
-            lelbow_pos = bp_coordinates(body_parts, 6, w, h)
-            l = lelbow_pos[0] - lwrist_pos[0]
+            lwrist_pos = bp_coordinates(body_parts, 7, self.w, self.h)
+            lelbow_pos = bp_coordinates(body_parts, 6, self.w, self.h)
+            lelbow_above_pos = (lelbow_pos[0], lelbow_pos[1] - 5)
+            l = calculate_angle(lwrist_pos, lelbow_pos, lelbow_above_pos)
+
+            if l > thresh:
+                lerror = True
         except KeyError as e:
             l = 0
 
-        return r, -l
+        if rerror and lerror:
+            return True, "Move both your wrists until they're directly above your elbows", "horizontal_extension_critique"
+        elif rerror:
+            return True, "Move your right wrist until it's directly above your elbow", "horizontal_extension_critique"
+        elif lerror:
+            return True, "Move your left wrist until it's direclty above your elbow", "horizontal_extension_critique"
+        else:
+            return False, "No critique", ""
 
-    def shoulderpress_angle(body_parts, w, h):
+    def elbow_lock_critique(self, body_parts, hist = True):
+        if hist:
+            self.add_to_history(body_parts)
+        self.update_state(body_parts)
+
+        r, l = 0, 0
+        rerror, lerror = False, False
+        thresh = 10 * math.pi / 180
+
         try:
-            rshoulder = bp_coordinates(body_parts, 2, w, h)
-            relbow = bp_coordinates(body_parts, 3, w, h)
-            rwrist = bp_coordinates(body_parts, 4, w, h)
-            try:
-                if rshoulder and relbow and rwrist:
-                    return calculate_angle(rshoulder, relbow, rwrist)
-                else:
-                     return -1
-            except TypeError as e:
-                return -1
+            rwrist_pos = bp_coordinates(body_parts, 4, self.w, self.h)
+            relbow_pos = bp_coordinates(body_parts, 3, self.w, self.h)
+            rshoulder_pos = bp_coordinates(body_parts, 2, self.w, self.h)
+            r = calculate_angle(rwrist_pos, relbow_pos, rshoulder_pos)
+
+            if r > math.pi - thresh:
+                rerror = True
+
         except KeyError as e:
-            return -1;
+            r = 0
+        try:
+            lwrist_pos = bp_coordinates(body_parts, 7, self.w, self.h)
+            lelbow_pos = bp_coordinates(body_parts, 6, self.w, self.h)
+            lshoulder_pos = (lelbow_pos[0], lelbow_pos[1] - 5)
+            l = calculate_angle(lwrist_pos, lelbow_pos, lshoulder_pos)
 
-    re_height, le_height = elbow_height(body_parts, w, h)
-    rextension, lextension = horizontal_extension(body_parts, w, h)
-    thresh = 15
-    critique = ""
-    if rextension > thresh and lextension > thresh:
-        critique = "You're over extending both of your arms." \
-                 + " Bring your wrist over your elbow."
-    elif rextension > thresh:
-        critique = "You're over extending your right arm." \
-                 + " Bring your wrist over your elbow."
-    elif lextension > thresh:
-        critique = "You're over extending your left arm." \
-                 + " Bring your wrist over your elbow."
-    elif rextension < -thresh and lextension < -thresh:
-        critique = "You're over bending both of your arms." \
-                 + " Bring your wrist over your elbow."
-    elif rextension < -thresh:
-        critique = "You're over bending your right arm." \
-                 + " Bring your wrist over your elbow."
-    elif lextension < -thresh:
-        critique = "You're over bending your right arm." \
-                 + " Bring your wrist over your elbow."
-    else:
-        critique = "Nice form! Keep it up."
+            if l > math.pi - thresh:
+                lerror = True
+        except KeyError as e:
+            l = 0
 
-    elbow_angle = shoulderpress_angle(body_parts, w, h)
-    if elbow_angle > 0:
-        if elbow_angle < (math.pi/4):
-            if state == 0:
-                state = 1
-            elif state == 2:
-                state = 1
-        elif elbow_angle > (math.pi/2):
-            if state == 1:
-                state = 2
+        if rerror and lerror:
+            return True, "Don't lock both your elbows at the top", "elbow_lock_critique"
+        elif rerror:
+            return True, "Don't lock your right elbow at the top", "elbow_lock_critique"
+        elif lerror:
+            return True, "Don't lock your left elbow at the top", "elbow_lock_critique"
+        else:
+            return False, "No critique", ""
 
-    return (rextension, lextension), critique, state
+    def full_range_critique(self, body_parts, hist = True):
+        if hist:
+            self.add_to_history(body_parts)
+        self.update_state(body_parts)
+
+        if self.avg_velocity() > 0 and self.state == 0 and self.elbow_angle(body_parts) > 55 * math.pi / 180:
+            return True, "Extend your arms higher on the way up to get the full range of motion", "full_range_critique"
+        elif self.avg_velocity() < 0 and self.state == 1 and self.elbow_angle(body_parts) < 135 * math.pi / 180:
+            return True, "Bend your arms lower on the way down to get the full range of motion", "full_range_critique"
+        else:
+            return False, "No critique", ""
+
+    def elbow_angle(self, body_parts):
+        try:
+            rwrist_pos = bp_coordinates(body_parts, 4, self.w, self.h)
+            relbow_pos = bp_coordinates(body_parts, 3, self.w, self.h)
+            rshoulder_pos = bp_coordinates(body_parts, 2, self.w, self.h)
+            return calculate_angle(rwrist_pos, relbow_pos, rshoulder_pos)
+
+        except:
+            pass
+        try:
+            lwrist_pos = bp_coordinates(body_parts, 7, self.w, self.h)
+            lelbow_pos = bp_coordinates(body_parts, 6, self.w, self.h)
+            lshoulder_pos = bp_coordinates(body_parts, 5, self.w, self.h)
+            return calculate_angle(lwrist_pos, lelbow_pos, lshoulder_pos)
+        except:
+            return False
+
+    def avg_velocity(self):
+        if len(self.history) == 3:
+            weights = np.array([.3, .7])
+            v = np.dot(weights, np.diff(np.array(self.history)))
+            if -1.5 < v < 1.5:
+                return 0
+            else:
+                return v
+        else:
+            return 0
+
+    def update_state(self, body_parts):
+        angle = self.elbow_angle(body_parts)
+        if not angle:
+            return
+        else:
+            if self.state == 0 and angle > 135 * math.pi / 180:
+                self.state = 1
+            elif self.state == 1 and angle < 55 * math.pi / 180:
+                self.state = 0
+                self.reps += 1
+
+    def add_to_history(self, body_parts):
+        avg_y = bp_coordinates_average(body_parts, 7, 4, self.w, self.h) #avg wrist pos
+
+        if not avg_y:
+            return
+        else:
+            avg_y = avg_y[1]
+
+        if len(self.history) == 3:
+            self.history = self.history[1:] + [avg_y]
+        else:
+            self.history.append(avg_y)
+
+        if avg_y != None and avg_y < self.wrist_min_pos:
+            self.wrist_min_pos = avg_y #highest position of wrist
+        if avg_y != None and avg_y > self.wrist_max_pos:
+            self.wrist_max_pos = avg_y #lowest position of wrist
 
 
 def plank(body_parts, state, side, w, h):
