@@ -17,7 +17,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 fps_time = 0
-
+//addcomment
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='tf-pose-estimation Video')
